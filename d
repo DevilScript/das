@@ -136,10 +136,10 @@ repeat task.wait(1) until game:IsLoaded() and game.Players and game.Players.Loca
 local Window
 local success, err = pcall(function()
     Window = WindUI:CreateWindow({
-        Title = "AnimeFruit Buffer Test V6",
+        Title = "AnimeFruit Buffer Test V7",
         Icon = "rbxassetid://8572550197",
         Author = "Advanced Buffer & Signal Test",
-        Folder = "AnimeFruitBufferTestV6",
+        Folder = "AnimeFruitBufferTestV7",
         Size = UDim2.fromOffset(600, 500),
         Theme = "Dark"
     })
@@ -149,29 +149,19 @@ if not success then
     return
 end
 
--- Check if Get method exists
-if not Tabs or not Tabs.Buffer or not Tabs.Buffer.Get then
-    warn("WindUI: Missing Get method in Tabs.Buffer")
-    WindUI:Notify({
-        Title = "Error",
-        Content = "WindUI is missing Get method. Please check WindUI version.",
-        Icon = "rbxassetid://17368208554",
-        Duration = 5
-    })
-    return
-end
-
 -- Create tabs
 local Tabs = {}
 Tabs.Test = Window:Section({ Title = "Buffer & Signal Test", Opened = true })
 Tabs.Buffer = Tabs.Test:Tab({ Title = "Buffer", Icon = "rbxassetid://17368089841", Desc = "Test Buffer Payloads" })
 Tabs.Signal = Tabs.Test:Tab({ Title = "Signal", Icon = "rbxassetid://17368089841", Desc = "Test Signal Payloads" })
 
--- Variables
+-- Variables to store Dropdown and Textbox values
 local selectedVersion = "PayloadV1"
-local clickCooldown = 0.5
-local lastClickTime = 0
-local isProcessing = false
+local selectedPayload = "Gems"
+local selectedSignal = signals[1]
+local customPayload = ""
+local tablePayload = ""
+local fireByte = versionOptions[selectedVersion].fireBytes[1]
 
 -- Version Dropdown
 Tabs.Buffer:Dropdown({
@@ -180,6 +170,7 @@ Tabs.Buffer:Dropdown({
     Value = selectedVersion,
     Callback = function(v)
         selectedVersion = v
+        fireByte = versionOptions[selectedVersion].fireBytes[1]
         WindUI:Notify({
             Title = "Success",
             Content = "Now using " .. v,
@@ -195,8 +186,9 @@ Tabs.Buffer:Divider()
 Tabs.Buffer:Dropdown({
     Title = "Select Payload",
     Values = { "Gems", "Coins", "EventCoins", "ChristmasCoins", "Rice", "LeopardFruit", "LoveHashira", "BigMom", "FlyBuff" },
-    Value = "Gems",
+    Value = selectedPayload,
     Callback = function(v)
+        selectedPayload = v
         local payload = payloads[v]
         local readable = bufferToString(payload)
         WindUI:Notify({
@@ -216,8 +208,7 @@ Tabs.Buffer:Button({
         lastClickTime = os.time()
         task.delay(clickCooldown, function() isProcessing = false end)
 
-        local payload = payloads[Tabs.Buffer:Get("Select Payload")]
-        local fireByte = versionOptions[selectedVersion].fireBytes[1]
+        local payload = payloads[selectedPayload]
         if fire(fireByte, payload) then
             WindUI:Notify({
                 Title = "Success",
@@ -241,6 +232,7 @@ Tabs.Buffer:Textbox({
         lastClickTime = os.time()
         task.delay(clickCooldown, function() isProcessing = false end)
 
+        customPayload = value
         local bytes = {}
         for num in string.gmatch(value, "%d+") do
             local n = tonumber(num)
@@ -266,7 +258,6 @@ Tabs.Buffer:Textbox({
             Duration = 5
         })
 
-        local fireByte = versionOptions[selectedVersion].fireBytes[1]
         if fire(fireByte, bytes) then
             WindUI:Notify({
                 Title = "Success",
@@ -292,7 +283,7 @@ Tabs.Buffer:Textbox({
             })
             return
         end
-        versionOptions[selectedVersion].fireBytes[1] = byte
+        fireByte = byte
         WindUI:Notify({
             Title = "Success",
             Content = "Fire Byte Set: " .. byte,
@@ -314,6 +305,7 @@ Tabs.Buffer:Textbox({
         lastClickTime = os.time()
         task.delay(clickCooldown, function() isProcessing = false end)
 
+        tablePayload = value
         local success, data = pcall(function()
             return loadstring("return " .. value)()
         end)
@@ -341,7 +333,6 @@ Tabs.Buffer:Textbox({
             Duration = 5
         })
 
-        local fireByte = versionOptions[selectedVersion].fireBytes[1]
         if fire(fireByte, bytes) then
             WindUI:Notify({
                 Title = "Success",
@@ -359,8 +350,9 @@ Tabs.Signal:Divider()
 Tabs.Signal:Dropdown({
     Title = "Select Signal",
     Values = signals,
-    Value = signals[1],
+    Value = selectedSignal,
     Callback = function(v)
+        selectedSignal = v
         WindUI:Notify({
             Title = "Signal Selected",
             Content = "Signal: " .. v,
@@ -378,12 +370,11 @@ Tabs.Signal:Button({
         lastClickTime = os.time()
         task.delay(clickCooldown, function() isProcessing = false end)
 
-        local payload = payloads[Tabs.Signal:Get("Select Signal")]
-        local signalName = Tabs.Signal:Get("Select Signal")
-        if fireSignal(signalName, payload) then
+        local payload = payloads[selectedPayload]
+        if fireSignal(selectedSignal, payload) then
             WindUI:Notify({
                 Title = "Success",
-                Content = "Payload Sent via Signal: " .. signalName .. "\nPayload: " .. table.concat(payload, ",") .. "\nASCII: " .. bufferToString(payload),
+                Content = "Payload Sent via Signal: " .. selectedSignal .. "\nPayload: " .. table.concat(payload, ",") .. "\nASCII: " .. bufferToString(payload),
                 Icon = "rbxassetid://17368190066",
                 Duration = 5
             })
@@ -399,9 +390,8 @@ Tabs.Signal:Button({
         lastClickTime = os.time()
         task.delay(clickCooldown, function() isProcessing = false end)
 
-        local value = Tabs.Buffer:Get("Enter Table Payload")
         local success, data = pcall(function()
-            return loadstring("return " .. value)()
+            return loadstring("return " .. tablePayload)()
         end)
         if not success or type(data) ~= "table" then
             WindUI:Notify({
@@ -420,14 +410,18 @@ Tabs.Signal:Button({
         end
         local readable = bufferToString(bytes)
 
-        local signalName = Tabs.Signal:Get("Select Signal")
-        if fireSignal(signalName, bytes) then
+        if fireSignal(selectedSignal, bytes) then
             WindUI:Notify({
                 Title = "Success",
-                Content = "Table Payload Sent via Signal: " .. signalName .. "\nPayload: " .. table.concat(bytes, ",") .. "\nASCII: " .. readable,
+                Content = "Table Payload Sent via Signal: " .. selectedSignal .. "\nPayload: " .. table.concat(bytes, ",") .. "\nASCII: " .. readable,
                 Icon = "rbxassetid://17368190066",
                 Duration = 5
             })
         end
     end
 })
+
+-- Variables for click cooldown
+local clickCooldown = 0.5
+local lastClickTime = 0
+local isProcessing = false
