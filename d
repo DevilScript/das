@@ -1,5 +1,12 @@
+
 -- Load WindUI
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local success, WindUI = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+end)
+if not success then
+    warn("Failed to load WindUI: " .. tostring(WindUI))
+    return
+end
 
 -- Services
 local Players = game:GetService("Players")
@@ -126,14 +133,33 @@ end
 repeat task.wait(1) until game:IsLoaded() and game.Players and game.Players.LocalPlayer and game.Players.LocalPlayer.Character
 
 -- Create WindUI Window
-local Window = WindUI:CreateWindow({
-    Title = "AnimeFruit Buffer Test V5",
-    Icon = "rbxassetid://8572550197",
-    Author = "Advanced Buffer & Signal Test",
-    Folder = "AnimeFruitBufferTestV5",
-    Size = UDim2.fromOffset(600, 500),
-    Theme = "Dark"
-})
+local Window
+local success, err = pcall(function()
+    Window = WindUI:CreateWindow({
+        Title = "AnimeFruit Buffer Test V6",
+        Icon = "rbxassetid://8572550197",
+        Author = "Advanced Buffer & Signal Test",
+        Folder = "AnimeFruitBufferTestV6",
+        Size = UDim2.fromOffset(600, 500),
+        Theme = "Dark"
+    })
+end)
+if not success then
+    warn("Failed to create WindUI window: " .. tostring(err))
+    return
+end
+
+-- Check if Get method exists
+if not Tabs or not Tabs.Buffer or not Tabs.Buffer.Get then
+    warn("WindUI: Missing Get method in Tabs.Buffer")
+    WindUI:Notify({
+        Title = "Error",
+        Content = "WindUI is missing Get method. Please check WindUI version.",
+        Icon = "rbxassetid://17368208554",
+        Duration = 5
+    })
+    return
+end
 
 -- Create tabs
 local Tabs = {}
@@ -352,7 +378,7 @@ Tabs.Signal:Button({
         lastClickTime = os.time()
         task.delay(clickCooldown, function() isProcessing = false end)
 
-        local payload = payloads[Tabs.Buffer:Get("Select Payload")]
+        local payload = payloads[Tabs.Signal:Get("Select Signal")]
         local signalName = Tabs.Signal:Get("Select Signal")
         if fireSignal(signalName, payload) then
             WindUI:Notify({
